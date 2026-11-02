@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const mammoth = require('mammoth');
-const pdfParse = require('pdf-parse');
+const pdfParsePkg = require('pdf-parse');
 const { authRequired } = require('../middleware/auth');
 
 // Storage for cover/avatar images
@@ -82,16 +82,48 @@ router.post('/document', authRequired, documentUpload.single('document'), async 
         extractedHtml = htmlResult.value || '';
       } catch (err) {
         console.warn('Mammoth docx parse warning:', err.message);
-        // Fallback to text buffer
+        // Fallback to text buffer cleanup
         extractedText = req.file.buffer.toString('utf-8').replace(/[\x00-\x09\x0B-\x1F\x7F-\x9F]/g, '');
       }
     } else if (ext === '.pdf') {
       try {
-        const pdfData = await pdfParse(req.file.buffer);
-        extractedText = pdfData.text || '';
+        let rawExtracted = '';
+
+        // Handle both pdf-parse v2 (class) and v1 (function)
+        if (typeof pdfParsePkg === 'function') {
+          const pdfData = await pdfParsePkg(req.file.buffer);
+          rawExtracted = pdfData.text || '';
+        } else if (pdfParsePkg && pdfParsePkg.PDFParse) {
+          const parser = new pdfParsePkg.PDFParse({ data: req.file.buffer });
+          const res = await parser.getText();
+          rawExtracted = res.text || '';
+          await parser.destroy();
+        }
+
+        // Clean out page markers like "-- 1 of 5 --"
+        extractedText = rawExtracted.replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '').trim();
+
+        // If parser returned blank, attempt text stream regex fallback
+        if (!extractedText) {
+          const rawBuf = req.file.buffer.toString('utf-8');
+          const matches = rawBuf.match(/\(([^()]+)\)\s*Tj/g);
+          if (matches && matches.length > 0) {
+            extractedText = matches.map(m => m.replace(/^\(|\)\s*Tj$/g, '')).join(' ');
+          }
+        }
       } catch (err) {
-        console.error('PDF parsing error:', err);
-        return res.status(400).json({ error: 'Failed to parse PDF document' });
+        console.error('PDF parsing error, attempting stream fallback:', err.message);
+        try {
+          const rawBuf = req.file.buffer.toString('utf-8');
+          const matches = rawBuf.match(/\(([^()]+)\)\s*Tj/g);
+          if (matches && matches.length > 0) {
+            extractedText = matches.map(m => m.replace(/^\(|\)\s*Tj$/g, '')).join(' ');
+          } else {
+            extractedText = rawBuf.replace(/[\x00-\x08\x0B-\x1F\x7F-\xFF]/g, ' ').replace(/\s{2,}/g, ' ').trim();
+          }
+        } catch (fbErr) {
+          return res.status(400).json({ error: 'Failed to parse PDF document: ' + err.message });
+        }
       }
     } else if (ext === '.txt' || ext === '.md') {
       extractedText = req.file.buffer.toString('utf-8');
@@ -105,6 +137,10 @@ router.post('/document', authRequired, documentUpload.single('document'), async 
       .replace(/\r/g, '\n')
       .trim();
 
+    if (!cleanContent) {
+      return res.status(400).json({ error: 'The uploaded document contains no readable text or is an image-only scan.' });
+    }
+
     res.json({
       message: 'Document successfully parsed and ready for editing',
       title: guessedTitle,
@@ -112,11 +148,11 @@ router.post('/document', authRequired, documentUpload.single('document'), async 
       content: cleanContent,
       htmlContent: extractedHtml,
       characterCount: cleanContent.length,
-      wordCount: cleanContent ? cleanContent.split(/\s+/).filter(Boolean).length : 0
+      wordCount: cleanContent.split(/\s+/).filter(Boolean).length
     });
   } catch (err) {
-    console.error('Document parsing error:', err);
-    res.status(500).json({ error: 'Failed to process document file' });
+    console.error('Document processing error:', err);
+    res.status(500).json({ error: 'Failed to process document: ' + (err.message || 'Unknown error') });
   }
 });
 
