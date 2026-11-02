@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary-indigo: #1E1B4B;
+    --accent-indigo: #312E81;
+    --light-indigo: #4338CA;
+    --paper-cream: #FAF7F2;
+    --paper-warm: #F4EFE6;
+    --paper-sepia: #FBF0D9;
+    --text-dark: #1E1B4B;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #FAF7F2;
+    color: #1E1B4B;
+  }
+}
+
+.font-serif-body {
+  font-family: 'Source Serif 4', Georgia, Cambria, serif;
+}
+
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+
+.font-cormorant {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* Custom scrollbars for clean literary aesthetic */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(30, 27, 75, 0.04);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(30, 27, 75, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(30, 27, 75, 0.4);
+}
+
+/* Reader page animation */
+.page-turn-enter {
+  opacity: 0;
+  transform: translateX(12px);
+}
+.page-turn-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
