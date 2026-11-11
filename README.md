@@ -2,7 +2,7 @@
 
 > *"Where words find a home."*
 
-INDIGO is a full-stack literary publishing web application where writers can publish serialized novels, poetry collections, and short stories, while readers can discover, read, listen to, review, and discuss literary works.
+INDIGO is a full-stack literary publishing web application where writers can publish short stories, poetry collections, and thoughts or quote breakdowns, while readers can discover, read, listen to, review, and discuss literary works.
 
 ---
 
@@ -20,11 +20,19 @@ INDIGO is a full-stack literary publishing web application where writers can pub
 - **Ownership Handling**: Deleting a pen name safely allows authors to either transfer works to another pen name or delete them permanently.
 
 ### 3. Categories & Document Uploads
-- Supports **Novels**, **Short Stories**, and **Poetry**.
+- Supports **Short Stories**, **Poetry**, and **Thoughts & Quote Breakdowns**.
 - In-app document extraction engine for `.docx`, `.doc`, `.pdf`, and `.txt` files: manuscripts are parsed directly into the native writing editor for refinement.
-- Rich formatting toolbar: headings, italics, blockquotes, dividers, and real-time word/character counts.
+- Dedicated **Thought & Quote Breakdown** mode to spotlight quotes and break down why they resonate.
+- Rich formatting toolbar: headings, bold, italics, blockquotes, dividers, and real-time word/character counts.
 
-### 4. Bookstore Homepage & Dynamic Weekly Rankings
+### 4. Creator Studio (`/studio`)
+- Dedicated dashboard to manage works across all pen names in one centralized view.
+- 1-Click live/draft publication toggles and story status switcher (`Ongoing`, `Completed`, `On Hiatus`).
+- Quick-edit metadata modal (title, category, genres, synopsis, cover).
+- Inline chapter management accordion: add, rename, publish/draft toggle, duplicate, and delete chapters.
+- 1-Click manuscript duplication to clone an entire work and its chapters into a working draft.
+
+### 5. Bookstore Homepage & Dynamic Weekly Rankings
 - Literary aesthetic featuring deep indigo (`#1E1B4B`), warm paper tones (`#FAF7F2`), and editorial typography.
 - Discovery sections appear immediately upon landing:
   - **Trending Now**
@@ -35,7 +43,7 @@ INDIGO is a full-stack literary publishing web application where writers can pub
   - **Category & Genre Discovery**
 - **Dynamic Weekly Rankings**: Filter rankings across **Today**, **This Week (Weekly)**, **This Month**, and **All Time** without altering historical lifetime reads.
 
-### 5. Dedicated Reading Experience & Text-to-Speech (TTS)
+### 6. Dedicated Reading Experience & Text-to-Speech (TTS)
 - **Customizable Reader**:
   - 5 Typography themes: *Warm Paper*, *Sepia*, *Midnight Indigo*, *Pitch Dark*, *Crisp White*.
   - Font families: *Literary Serif*, *Modern Sans*, *Editorial Display*, *Typewriter Mono*.
@@ -48,6 +56,7 @@ INDIGO is a full-stack literary publishing web application where writers can pub
   - Visible **LISTEN** button and floating control dock.
   - Play, Pause, Resume, Stop, and paragraph skip forward/back.
   - Variable speed (0.75x to 2.0x) and browser voice picker.
+  - 100% clientside via native Web Speech API (`SpeechSynthesis`).
   - **Reading & Listening Sync**: Highlights the active paragraph being spoken and auto-scrolls to keep it in view.
   - **Continuous Chapter Playback**: Automatically transitions to the next chapter upon speech completion.
 

@@ -15,7 +15,9 @@ import {
   FileText,
   Sparkles,
   HelpCircle,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Copy,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth }) {
@@ -24,10 +26,12 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'settings', 'preview'
+  const [myWorks, setMyWorks] = useState([]);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
 
   // Work Form State
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('novel'); // novel, short_story, poem
+  const [category, setCategory] = useState('short_story'); // short_story, poem, thought
   const [selectedPenNameId, setSelectedPenNameId] = useState('');
   const [synopsis, setSynopsis] = useState('');
   const [genres, setGenres] = useState(['Drama']);
@@ -47,6 +51,25 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
   const docInputRef = useRef(null);
   const coverInputRef = useRef(null);
   const editorTextareaRef = useRef(null);
+
+  // Fetch author's other works for fast manuscript switching
+  useEffect(() => {
+    if (user) {
+      apiRequest('/works/mine').then(res => setMyWorks(res || [])).catch(() => {});
+    }
+  }, [user]);
+
+  // Ctrl+S / Cmd+S shortcut for instant saving
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveWork(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [title, selectedPenNameId, chapterTitle, chapterContent, isPublished, editWorkId]);
 
   const availableGenres = [
     'Romance', 'Fantasy', 'Mystery', 'Thriller', 'Horror',
@@ -215,6 +238,27 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
     }
   };
 
+  // Duplicate Chapter with 1 click
+  const handleDuplicateChapter = (index) => {
+    const target = chapters[index];
+    const newNum = chapters.length + 1;
+    const newTitle = `${target.title || 'Chapter'} (Copy)`;
+    const newContent = index === activeChapterIndex ? chapterContent : (target.content || '');
+    const newCh = {
+      id: `draft-${Date.now()}`,
+      chapter_number: newNum,
+      title: newTitle,
+      content: newContent,
+      is_published: 0
+    };
+    const updated = [...chapters, newCh];
+    setChapters(updated);
+    setActiveChapterIndex(updated.length - 1);
+    setChapterTitle(newTitle);
+    setChapterContent(newContent);
+    setChapterIsPublished(false);
+  };
+
   // Document Upload Handler (.docx, .doc, .pdf, .txt)
   const handleDocumentUpload = async (e) => {
     const file = e.target.files[0];
@@ -321,6 +365,7 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
           body: JSON.stringify({
             pen_name_id: selectedPenNameId,
             title,
+            category,
             synopsis,
             cover_url: coverUrl,
             genres,
@@ -393,7 +438,7 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
         <Feather className="w-12 h-12 text-[#1E1B4B] mx-auto mb-3" />
         <h2 className="font-display text-2xl font-bold text-[#1E1B4B]">Writer Studio</h2>
         <p className="text-sm text-gray-600 mt-2">
-          Sign in or create a free author account to publish novels, poetry, and short stories with zero fees.
+          Sign in or create a free author account to publish short stories, poetry, and thoughtful reflections with zero fees.
         </p>
         <button
           onClick={() => onOpenAuth('login')}
@@ -410,9 +455,39 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
       {/* Top Studio Control Header */}
       <div className="bg-white border border-[#E5DECF] rounded-3xl p-4 sm:p-6 mb-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <span className="text-[10px] uppercase font-bold tracking-widest text-[#7A759C] block">
-            INDIGO WRITER STUDIO
-          </span>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-[#7A759C]">
+              INDIGO WRITER STUDIO
+            </span>
+
+            {/* Quick Manuscript Switcher */}
+            {myWorks.length > 0 && (
+              <select
+                value={editWorkId || 'new'}
+                onChange={(e) => {
+                  if (e.target.value === 'new') onNavigate('/write');
+                  else onNavigate(`/write?edit=${e.target.value}`);
+                }}
+                className="py-0.5 px-2 bg-[#FAF7F2] border border-[#DDD5C5] rounded-lg text-[11px] font-semibold text-[#1E1B4B] cursor-pointer"
+              >
+                <option value="new">+ Start Fresh Story</option>
+                {myWorks.map(w => (
+                  <option key={w.id} value={w.id}>
+                    Edit: {w.title} ({w.pen_name})
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <button
+              onClick={() => onNavigate('/studio')}
+              className="flex items-center gap-1 text-[11px] font-bold text-[#312E81] hover:underline ml-2"
+            >
+              <LayoutDashboard className="w-3 h-3" />
+              <span>Creator Dashboard</span>
+            </button>
+          </div>
+
           <h1 className="font-display text-xl sm:text-2xl font-bold text-[#1E1B4B]">
             {title ? title : 'Untitled Manuscript'}
           </h1>
@@ -421,6 +496,7 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
             <span className="font-semibold text-[#1E1B4B]">
               {penNames.find(p => p.id === selectedPenNameId)?.name || 'Default Author'}
             </span>
+            <span className="ml-2 text-gray-400 font-mono text-[11px]">(Press Ctrl+S to save)</span>
           </p>
         </div>
 
@@ -458,7 +534,7 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
             disabled={saving}
             className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold rounded-xl border border-gray-300 transition-colors"
           >
-            Save Draft
+            {saving ? 'Saving...' : 'Save Draft'}
           </button>
 
           <button
@@ -526,6 +602,13 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
                     >
                       <ArrowDown className="w-3 h-3" />
                     </button>
+                    <button
+                      onClick={() => handleDuplicateChapter(idx)}
+                      className="p-1 text-gray-400 hover:text-[#1E1B4B]"
+                      title="Duplicate Chapter"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
                     {chapters.length > 1 && (
                       <button
                         onClick={() => handleDeleteChapter(idx)}
@@ -572,10 +655,21 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
                 type="text"
                 value={chapterTitle}
                 onChange={(e) => setChapterTitle(e.target.value)}
-                placeholder="Chapter Title (e.g. Chapter 1: The Gathering Storm)"
+                placeholder={category === 'thought' ? "Title (e.g. Reflections on Rilke's Solitude / Thoughts on Midnight Rain)" : "Chapter Title (e.g. Chapter 1: The Gathering Storm)"}
                 className="w-full font-display text-xl sm:text-2xl font-bold text-[#1E1B4B] border-b border-[#E5DECF] pb-2 focus:outline-none focus:border-[#1E1B4B]"
               />
             </div>
+
+            {/* Thought Guidance Banner */}
+            {category === 'thought' && (
+              <div className="mb-4 p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl text-xs text-amber-950 flex items-start gap-3 shadow-xs">
+                <span className="text-xl select-none">💡</span>
+                <div>
+                  <strong className="font-semibold block text-amber-900 mb-0.5">Thought & Quote Breakdown Mode</strong>
+                  <span>Share what's on your mind, or highlight your favorite quote using the <strong>Quote</strong> button below to break down what it means to you and why you love it.</span>
+                </div>
+              </div>
+            )}
 
             {/* Formatting Toolbar */}
             <div className="py-2 px-3 bg-[#FAF7F2] border border-[#E5DECF] rounded-xl mb-4 flex flex-wrap items-center gap-2 text-xs">
@@ -632,7 +726,11 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
               ref={editorTextareaRef}
               value={chapterContent}
               onChange={(e) => setChapterContent(e.target.value)}
-              placeholder="Begin writing your narrative, stanza, or dialogue here..."
+              placeholder={
+                category === 'thought'
+                  ? "Share your thoughts on anything, or share your favorite quote and break down what you think about it or why you love it..."
+                  : "Begin writing your narrative, stanza, or dialogue here..."
+              }
               className="flex-1 w-full font-serif-body text-base text-[#1E1B4B] leading-relaxed p-4 bg-[#FAF7F2]/50 border border-[#E5DECF] rounded-2xl focus:outline-none focus:border-[#1E1B4B] focus:bg-white resize-y min-h-[450px]"
             />
           </div>
@@ -671,9 +769,9 @@ export default function WriterStudioPage({ editWorkId, onNavigate, onOpenAuth })
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full p-2.5 bg-[#FAF7F2] border border-[#DDD5C5] rounded-xl text-sm font-medium text-[#1E1B4B] focus:outline-none focus:border-[#1E1B4B]"
               >
-                <option value="novel">Novel (Serialized Chapters)</option>
                 <option value="short_story">Short Story</option>
                 <option value="poem">Poetry</option>
+                <option value="thought">Thought (Musings, Quotes & Breakdowns)</option>
               </select>
             </div>
 

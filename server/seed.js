@@ -186,13 +186,13 @@ async function seed() {
     VALUES (@id, @work_id, @chapter_number, @title, @content, @is_published, @created_at, @updated_at)
   `);
 
-  // Work 1: The Silent Promise by MidnightInk (Novel)
+  // Work 1: The Silent Promise by MidnightInk (Short Story)
   const workSilentPromise = {
     id: uuidv4(),
     pen_name_id: penMidnightInk.id,
     title: 'The Silent Promise',
     slug: 'the-silent-promise',
-    category: 'novel',
+    category: 'short_story',
     synopsis: 'In the wind-swept coastal town of Oakhaven, a long-buried correspondence between two estranging souls surfaces forty years after the great tempest. When Genevieve returns to settle her grandmother’s estate, she uncovers a vow sealed in wax and silence—one that demands to be fulfilled before the winter tides retreat.',
     cover_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
     genres: JSON.stringify(['Romance', 'Drama', 'Historical Fiction']),
@@ -263,13 +263,13 @@ It ticked backward, one second every breath, counting down to an hour that had n
 
   [spCh1, spCh2, spCh3].forEach(c => insertChapter.run(c));
 
-  // Work 2: The Alchemist of Aethelgard by C. R. Sterling (Novel)
+  // Work 2: The Alchemist of Aethelgard by C. R. Sterling (Short Story)
   const workAlchemist = {
     id: uuidv4(),
     pen_name_id: penSterling.id,
     title: 'The Alchemist of Aethelgard',
     slug: 'the-alchemist-of-aethelgard',
-    category: 'novel',
+    category: 'short_story',
     synopsis: 'In an empire powered by volatile mercurial resonances, apprentice Kaelen discovers an ancient cipher detailing the transmutation of memories into stone. When the Archons proclaim martial decree across the city tiers, Kaelen must choose between preserving his family’s forgotten lineage or burning the guild to its foundations.',
     cover_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
     genres: JSON.stringify(['Fantasy', 'Adventure', 'Mystery']),
@@ -385,13 +385,13 @@ and keep this quiet indigo for you.`,
   };
   [poCh1, poCh2].forEach(c => insertChapter.run(c));
 
-  // Work 4: Echoes of the Void by Aura Vance (Novel)
+  // Work 4: Echoes of the Void by Aura Vance (Short Story)
   const workEchoes = {
     id: uuidv4(),
     pen_name_id: penAuraVance.id,
     title: 'Echoes of the Void',
     slug: 'echoes-of-the-void',
-    category: 'novel',
+    category: 'short_story',
     synopsis: 'Dr. Talia Lin is stationed at the edge of the Kuiper Belt monitoring anomalous radio frequencies from deep space. When a transmission matches the exact brainwave signatures of her twin sister who vanished on an interstellar expedition twelve years earlier, scientific objectivity dissolves into an obsession across the cosmos.',
     cover_url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80',
     genres: JSON.stringify(['Science Fiction', 'Thriller', 'Mystery']),
@@ -469,13 +469,13 @@ Kenji looked down. On the inner cover, stamped in faded vermilion seal ink, was 
   };
   insertChapter.run(shCh1);
 
-  // Work 6: Shadows Over Blackwood Hall by MidnightInk (Novel)
+  // Work 6: Shadows Over Blackwood Hall by MidnightInk (Short Story)
   const workBlackwood = {
     id: uuidv4(),
     pen_name_id: penMidnightInk.id,
     title: 'Shadows Over Blackwood Hall',
     slug: 'shadows-over-blackwood-hall',
-    category: 'novel',
+    category: 'short_story',
     synopsis: 'A Victorian gothic mystery set in Yorkshire moorlands. An art restorer uncovers hidden layers beneath a family portrait that depict scenes of crimes before they occurred.',
     cover_url: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80',
     genres: JSON.stringify(['Mystery', 'Horror', 'Historical Fiction']),
@@ -505,13 +505,115 @@ Beneath the brushstroke of the aristocrat’s velvet mantle, an unexpected conto
   };
   insertChapter.run(bwCh1);
 
+  // Work 7: On Kafka's Axe (Thought / Quote Breakdown)
+  const workKafkaAxe = {
+    id: uuidv4(),
+    pen_name_id: penSilentWriter.id,
+    title: "On Kafka's Axe: Why We Need Literature That Wounds",
+    slug: 'on-kafkas-axe',
+    category: 'thought',
+    synopsis: "A breakdown of Franz Kafka's famous 1904 letter to Oskar Pollak: 'A book must be the axe for the frozen sea within us.' A reflection on why comfortable art fails us, and why the most enduring sentences hurt before they heal.",
+    cover_url: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80',
+    genres: JSON.stringify(['Non-fiction', 'Drama']),
+    status: 'completed',
+    is_published: 1,
+    reads_count: 5380,
+    created_at: daysAgo(10),
+    updated_at: daysAgo(1)
+  };
+  insertWork.run(workKafkaAxe);
+
+  const kfCh1 = {
+    id: uuidv4(),
+    work_id: workKafkaAxe.id,
+    chapter_number: 1,
+    title: 'The Frozen Sea Within Us',
+    content: `### The Quote
+
+> "I think we ought to read only the kind of books that wound or stab us. If the book we are reading doesn't wake us up with a blow to the head, what are we reading it for? So that it will make us happy, as you write? Good Lord, we would be happy precisely if we had no books, and the kind of books that make us happy are the kind we could write ourselves if we had to. But we need the books that affect us like a disaster, that grieve us deeply, like the death of someone we loved more than ourselves, like being banished into forests far from everyone, like a suicide. A book must be the axe for the frozen sea within us."
+> — **Franz Kafka**, *Letter to Oskar Pollak (January 1904)*
+
+---
+
+### What I Think About This
+
+I first read this sentence at twenty, sitting in a draughty railway carriage heading north. At the time, I underlined it in dark black ink because it sounded ferocious and uncompromising—the kind of romantic nihilism that young readers wear like a dark woolen coat.
+
+Now, years later, I return to it with a completely different kind of reverence.
+
+Kafka is not asking for cruelty; he is asking for **awakening**.
+
+Most of our modern days are spent in self-anesthesia. We scroll, we consume pleasant diversions, we curate polite interactions that never disturb our equilibrium. Without noticing, a crust of ice forms over our inner life. We become reasonable, pragmatic, and emotionally numb.
+
+When a writer like Baldwin, Woolf, or Morrison strikes that ice, the sensation is violent. Your chest tightens. You stare at the opposite wall for ten minutes because a string of seven words just rearranged your childhood memory.
+
+### Why I Love It
+
+Because it honors the reader's soul. It refuses to treat literature as entertainment or decoration. When Kafka demands an axe, he is reminding us that inside every human being is an unfathomable ocean—and the greatest tragedy is letting it freeze over in comfort.`,
+    is_published: 1,
+    created_at: daysAgo(10),
+    updated_at: daysAgo(1)
+  };
+  insertChapter.run(kfCh1);
+
+  // Work 8: The Architecture of Solitude (Thought / Quote Breakdown)
+  const workRilkeSolitude = {
+    id: uuidv4(),
+    pen_name_id: penThePoet.id,
+    title: 'The Architecture of Solitude: Notes on Rilke',
+    slug: 'the-architecture-of-solitude',
+    category: 'thought',
+    synopsis: "Exploring Rainer Maria Rilke's definition of love: 'Love consists in this: that two solitudes protect and border and salute each other.' Why true intimacy requires safeguarding each other's wilderness rather than merging into compromise.",
+    cover_url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=80',
+    genres: JSON.stringify(['Poetry', 'Non-fiction']),
+    status: 'completed',
+    is_published: 1,
+    reads_count: 3890,
+    created_at: daysAgo(7),
+    updated_at: daysAgo(2)
+  };
+  insertWork.run(workRilkeSolitude);
+
+  const rkCh1 = {
+    id: uuidv4(),
+    work_id: workRilkeSolitude.id,
+    chapter_number: 1,
+    title: 'Two Solitudes Bordering Each Other',
+    content: `### The Quote
+
+> "For one human being to love another; that is perhaps the most difficult of all our tasks, the ultimate, the last test and proof, the work for which all other work is even preparation... Love consists in this: that two solitudes protect and border and salute each other."
+> — **Rainer Maria Rilke**, *Letters to a Young Poet (1903)*
+
+---
+
+### Personal Reflections
+
+Pop culture teaches us that love is fusion. Two puzzle pieces clicking together; two halves completing one whole; the dissolution of boundaries until nothing separate remains.
+
+Rilke offers the opposite, and it is far more radical.
+
+He describes love not as a cage or an entanglement, but as a boundary of respect. You have a wilderness inside you—your private memories, your unspoken terrors, your solitary longings. The person who loves you is not supposed to colonize that wilderness or pave roads through it.
+
+They stand at the frontier, lift their lantern, and salute it.
+
+### Why This Resonates With Me
+
+In an era of relentless connectivity where we are constantly tracked, pinged, and demanded to explain ourselves, the most precious gift one writer or lover can give another is permission to remain mysterious.
+
+When two people protect each other's solitude, they never run out of wonder.`,
+    is_published: 1,
+    created_at: daysAgo(7),
+    updated_at: daysAgo(2)
+  };
+  insertChapter.run(rkCh1);
+
   // 4. Create Reading Events (Across today, this week, this month to populate rankings!)
   const insertEvent = db.prepare(`
     INSERT INTO reading_events (id, work_id, user_id, created_at)
     VALUES (@id, @work_id, @user_id, @created_at)
   `);
 
-  const allWorks = [workSilentPromise, workAlchemist, workConstellations, workEchoes, workShinjuku, workBlackwood];
+  const allWorks = [workSilentPromise, workAlchemist, workConstellations, workEchoes, workShinjuku, workBlackwood, workKafkaAxe, workRilkeSolitude];
 
   allWorks.forEach(w => {
     // Today's events

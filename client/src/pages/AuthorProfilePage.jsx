@@ -55,12 +55,14 @@ export default function AuthorProfilePage({ authorId, onNavigate }) {
 
   const getFilteredWorks = () => {
     switch (activeTab) {
-      case 'novels':
-        return catalogue.novels || [];
-      case 'poems':
-        return catalogue.poems || [];
       case 'shortStories':
         return catalogue.shortStories || [];
+      case 'poems':
+        return catalogue.poems || [];
+      case 'thoughts':
+        return catalogue.thoughts || [];
+      case 'novels':
+        return catalogue.novels || [];
       case 'all':
       default:
         return catalogue.all || [];
@@ -156,16 +158,16 @@ export default function AuthorProfilePage({ authorId, onNavigate }) {
             All Publications ({catalogue.all?.length || 0})
           </button>
 
-          {catalogue.novels?.length > 0 && (
+          {catalogue.shortStories?.length > 0 && (
             <button
-              onClick={() => setActiveTab('novels')}
+              onClick={() => setActiveTab('shortStories')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                activeTab === 'novels'
+                activeTab === 'shortStories'
                   ? 'bg-[#1E1B4B] text-white'
                   : 'text-gray-600 hover:text-black hover:bg-gray-100'
               }`}
             >
-              Novels ({catalogue.novels.length})
+              Short Stories ({catalogue.shortStories.length})
             </button>
           )}
 
@@ -182,16 +184,16 @@ export default function AuthorProfilePage({ authorId, onNavigate }) {
             </button>
           )}
 
-          {catalogue.shortStories?.length > 0 && (
+          {catalogue.thoughts?.length > 0 && (
             <button
-              onClick={() => setActiveTab('shortStories')}
+              onClick={() => setActiveTab('thoughts')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                activeTab === 'shortStories'
+                activeTab === 'thoughts'
                   ? 'bg-[#1E1B4B] text-white'
                   : 'text-gray-600 hover:text-black hover:bg-gray-100'
               }`}
             >
-              Short Stories ({catalogue.shortStories.length})
+              Thoughts & Quotes ({catalogue.thoughts.length})
             </button>
           )}
         </div>

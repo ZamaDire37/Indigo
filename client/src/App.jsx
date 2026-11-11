@@ -15,6 +15,53 @@ import CommunityPage from './pages/CommunityPage';
 import PenNamesPage from './pages/PenNamesPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import SettingsPage from './pages/SettingsPage';
+import CreatorStudioPage from './pages/CreatorStudioPage';
+
+class RouteErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('Route render error:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-xl mx-auto my-24 p-8 text-center bg-white rounded-3xl border border-[#DDD5C5] shadow-xs">
+          <h2 className="font-display text-2xl font-bold text-[#1E1B4B]">Something went wrong</h2>
+          <p className="text-xs text-stone-600 mt-2">
+            An unexpected error occurred while loading this view: {this.state.error?.message || 'Unknown error'}
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-[#1E1B4B] text-white text-xs font-semibold rounded-xl hover:bg-[#312E81]"
+            >
+              Reload Page
+            </button>
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.href = '/';
+              }}
+              className="px-4 py-2 bg-stone-100 text-stone-800 text-xs font-semibold rounded-xl hover:bg-stone-200"
+            >
+              Return Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function IndigoApp() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname + window.location.search);
@@ -130,6 +177,13 @@ function IndigoApp() {
         onNavigate={navigate}
       />
     );
+  } else if (pathOnly === '/studio') {
+    routeComponent = (
+      <CreatorStudioPage
+        onNavigate={navigate}
+        onOpenAuth={openAuth}
+      />
+    );
   } else if (pathOnly === '/settings') {
     routeComponent = (
       <SettingsPage
@@ -162,7 +216,9 @@ function IndigoApp() {
       />
 
       <div className="flex-1">
-        {routeComponent}
+        <RouteErrorBoundary key={pathOnly}>
+          {routeComponent}
+        </RouteErrorBoundary>
       </div>
 
       <Footer onNavigate={navigate} />

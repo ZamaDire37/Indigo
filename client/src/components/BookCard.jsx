@@ -19,11 +19,11 @@ export default function BookCard({ work, onNavigate }) {
     switch (cat) {
       case 'poem':
         return 'Poem';
+      case 'thought':
+        return 'Thought';
       case 'short_story':
-        return 'Short Story';
-      case 'novel':
       default:
-        return 'Novel';
+        return 'Short Story';
     }
   };
 

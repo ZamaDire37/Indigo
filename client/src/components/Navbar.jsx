@@ -16,7 +16,8 @@ import {
   X,
   Check,
   PlusCircle,
-  ExternalLink
+  ExternalLink,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function Navbar({ onOpenAuth, onNavigate, currentPath }) {
@@ -110,6 +111,11 @@ export default function Navbar({ onOpenAuth, onNavigate, currentPath }) {
               <button onClick={() => onNavigate('/library')} className={navLinkClass('/library')}>
                 My Library
               </button>
+              {user && (
+                <button onClick={() => onNavigate('/studio')} className={navLinkClass('/studio')}>
+                  Creator Studio
+                </button>
+              )}
               <button
                 onClick={() => onNavigate('/write')}
                 className="ml-2 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium bg-[#1E1B4B] text-[#FAF7F2] hover:bg-[#312E81] transition-shadow shadow-xs hover:shadow"
@@ -301,6 +307,17 @@ export default function Navbar({ onOpenAuth, onNavigate, currentPath }) {
                         <button
                           onClick={() => {
                             setUserDropdownOpen(false);
+                            onNavigate('/studio');
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-xs text-amber-900 bg-amber-50/70 hover:bg-amber-100 font-semibold"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-amber-800" />
+                          <span>Creator Studio</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setUserDropdownOpen(false);
                             onNavigate('/pen-names');
                           }}
                           className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-[#FAF7F2]"
@@ -442,6 +459,17 @@ export default function Navbar({ onOpenAuth, onNavigate, currentPath }) {
           >
             My Library
           </button>
+          {user && (
+            <button
+              onClick={() => {
+                onNavigate('/studio');
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 text-sm font-semibold text-amber-900 bg-amber-50/80 rounded-lg hover:bg-amber-100"
+            >
+              Creator Studio
+            </button>
+          )}
           <button
             onClick={() => {
               onNavigate('/write');

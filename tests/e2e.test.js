@@ -39,13 +39,16 @@ async function runTests() {
     return data;
   }
 
+  // Generate unique run identifier for repeatable test execution
+  const runId = Math.floor(Math.random() * 900000 + 100000);
+
   // JOURNEY STEP 1: A user registers
   console.log('\nStep 1: Registering new author user...');
   const authorAuth = await api('/auth/register', {
     method: 'POST',
     body: JSON.stringify({
-      username: 'veronica_author',
-      email: 'veronica@journey.test',
+      username: `veronica_${runId}`,
+      email: `veronica_${runId}@journey.test`,
       password: 'AuthorPassword123!'
     })
   });
@@ -87,15 +90,15 @@ async function runTests() {
   });
   console.log('✓ Verified account owns', authorPenNames.length, 'distinct pen names.');
 
-  // JOURNEY STEP 3: Publishes a novel under the first pen name
-  console.log('\nStep 3: Publishing serialized Novel under pen name 1 (V. R. Sterling)...');
+  // JOURNEY STEP 3: Publishes a short story under the first pen name
+  console.log('\nStep 3: Publishing serialized Short Story under pen name 1 (V. R. Sterling)...');
   const novelRes = await api('/works', {
     method: 'POST',
     headers: { Authorization: `Bearer ${authorToken}` },
     body: JSON.stringify({
       pen_name_id: penName3.id,
       title: 'Whispers of the Obsidian Spire',
-      category: 'novel',
+      category: 'short_story',
       synopsis: 'An apprentice runekeeper uncovers a conspiracy beneath the capital spire.',
       genres: ['Fantasy', 'Adventure', 'Mystery'],
       status: 'ongoing',
@@ -114,7 +117,7 @@ Kaelen tightened his leather gauntlet. Below the high precipice of the Obsidian 
     })
   });
   const novel = novelRes.work;
-  console.log('✓ Novel published immediately! ID:', novel.id, 'Title:', novel.title);
+  console.log('✓ Short Story published immediately! ID:', novel.id, 'Title:', novel.title);
 
   // JOURNEY STEP 4: Publishes a poem under the second pen name
   console.log('\nStep 4: Publishing Poetry collection under pen name 2 (NocturnalSage)...');
@@ -142,23 +145,57 @@ washing the names of autumn leaves away.`,
   const poem = poemRes.work;
   console.log('✓ Poem published immediately! ID:', poem.id, 'Title:', poem.title);
 
-  // JOURNEY STEP 5: Both publications appear in the correct sections
+  // JOURNEY STEP 4B: Publishes a Thought / Quote Breakdown under default pen name
+  console.log('\nStep 4B: Publishing Thought & Quote Breakdown under pen name 1...');
+  const thoughtRes = await api('/works', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${authorToken}` },
+    body: JSON.stringify({
+      pen_name_id: defaultPenName.id,
+      title: "On James Baldwin's Masks: The Architecture of Vulnerability",
+      category: 'thought',
+      synopsis: "A breakdown of James Baldwin's quote on how love removes the masks we cannot live without and cannot live within.",
+      genres: ['Non-fiction', 'Drama'],
+      status: 'completed',
+      is_published: 1,
+      initial_chapter: {
+        title: 'The Masks We Cannot Live Without',
+        content: `### The Quote
+
+> "Love takes off the masks that we fear we cannot live without and know we cannot live within."
+> — **James Baldwin**, *The Fire Next Time*
+
+### Why This Resonates With Me
+
+Baldwin diagnoses the human condition with terrifying accuracy. We spend years crafting a persona to protect ourselves from shame and rejection, yet that very persona suffocates our real spirit. True literature and genuine love demand that the mask be set aside.`,
+        is_published: 1
+      }
+    })
+  });
+  const thoughtWork = thoughtRes.work;
+  console.log('✓ Thought published immediately! ID:', thoughtWork.id, 'Title:', thoughtWork.title);
+
+  // JOURNEY STEP 5: All publications appear in the correct sections
   console.log('\nStep 5: Verifying publications in Discovery sections...');
-  const novelList = await api('/works?category=novel');
-  const foundNovel = novelList.works.find(w => w.id === novel.id);
-  console.log('✓ Novel found in Novels section with pen name:', foundNovel?.pen_name);
+  const storyList = await api('/works?category=short_story');
+  const foundStory = storyList.works.find(w => w.id === novel.id);
+  console.log('✓ Short Story found in Short Stories section with pen name:', foundStory?.pen_name);
 
   const poemList = await api('/works?category=poem');
   const foundPoem = poemList.works.find(w => w.id === poem.id);
   console.log('✓ Poem found in Poetry section with pen name:', foundPoem?.pen_name);
+
+  const thoughtList = await api('/works?category=thought');
+  const foundThought = thoughtList.works.find(w => w.id === thoughtWork.id);
+  console.log('✓ Thought found in Thoughts section with pen name:', foundThought?.pen_name);
 
   // JOURNEY STEP 6: A different user discovers the novel
   console.log('\nStep 6: Registering a second user (Reader) to discover works...');
   const readerAuth = await api('/auth/register', {
     method: 'POST',
     body: JSON.stringify({
-      username: 'felix_reader',
-      email: 'felix@journey.test',
+      username: `felix_${runId}`,
+      email: `felix_${runId}@journey.test`,
       password: 'ReaderPassword123!'
     })
   });
@@ -311,10 +348,50 @@ washing the names of autumn leaves away.`,
     console.log('✓ Admin resolved report ID:', reportToResolve.id);
   }
 
+  // JOURNEY STEP 15: Creator Studio CRUD operations
+  console.log('\nStep 15: Testing enhanced Creator Studio CRUD operations...');
+  const myWorks = await api('/works/mine', {
+    headers: { Authorization: `Bearer ${authorToken}` }
+  });
+  console.log('✓ Author retrieved all their publications across pen names:', myWorks.works.length, 'works found.');
+
+  // Quick-status toggle (unpublish/publish)
+  const quickStatusRes = await api(`/works/${novel.id}/quick-status`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${authorToken}` },
+    body: JSON.stringify({ is_published: 0, status: 'completed' })
+  });
+  console.log('✓ 1-Click Status switch: Work is_published =', quickStatusRes.work.is_published, '| status =', quickStatusRes.work.status);
+
+  // Duplicate work
+  const duplicateRes = await api(`/works/${novel.id}/duplicate`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${authorToken}` }
+  });
+  console.log('✓ 1-Click Duplicate work: Created manuscript copy ID:', duplicateRes.work.id, 'Title:', duplicateRes.work.title);
+
+  // Quick chapter title update & quick publish toggle
+  const firstDupeChapter = duplicateRes.chapters[0];
+  if (firstDupeChapter) {
+    const renamedChapter = await api(`/chapters/${firstDupeChapter.id}/quick-title`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${authorToken}` },
+      body: JSON.stringify({ title: 'Prologue: Shadows Awaken' })
+    });
+    console.log('✓ Inline chapter title quick edit:', renamedChapter.chapter.title);
+
+    const publishedChapter = await api(`/chapters/${firstDupeChapter.id}/quick-publish`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${authorToken}` },
+      body: JSON.stringify({ is_published: 1 })
+    });
+    console.log('✓ Inline chapter quick publish toggle: is_published =', publishedChapter.chapter.is_published);
+  }
+
   // Close test server
   server.close();
   console.log('\n======================================================');
-  console.log('ALL 14 USER JOURNEYS PASSED WITH REAL PERSISTED DATA!');
+  console.log('ALL 15 USER JOURNEYS PASSED WITH REAL PERSISTED DATA!');
   console.log('======================================================');
 }
 

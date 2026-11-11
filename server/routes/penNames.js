@@ -172,9 +172,10 @@ router.get('/:id/public', authOptional, (req, res) => {
       : null;
 
     // Group catalogue by categories
-    const novels = works.filter(w => w.category === 'novel');
-    const poems = works.filter(w => w.category === 'poem');
+    const thoughts = works.filter(w => w.category === 'thought');
     const shortStories = works.filter(w => w.category === 'short_story');
+    const poems = works.filter(w => w.category === 'poem');
+    const novels = works.filter(w => w.category === 'novel'); // legacy support
 
     res.json({
       author: penName,
@@ -183,15 +184,17 @@ router.get('/:id/public', authOptional, (req, res) => {
         totalReads,
         totalComments,
         overallRating,
-        novelsCount: novels.length,
+        thoughtsCount: thoughts.length,
+        shortStoriesCount: shortStories.length,
         poemsCount: poems.length,
-        shortStoriesCount: shortStories.length
+        novelsCount: novels.length
       },
       catalogue: {
         all: works,
-        novels,
+        thoughts,
+        shortStories,
         poems,
-        shortStories
+        novels
       }
     });
   } catch (err) {

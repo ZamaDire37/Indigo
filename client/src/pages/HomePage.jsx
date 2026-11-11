@@ -13,7 +13,8 @@ import {
   Compass,
   ArrowRight,
   Filter,
-  Calendar
+  Calendar,
+  Quote
 } from 'lucide-react';
 
 export default function HomePage({ onNavigate }) {
@@ -52,9 +53,9 @@ export default function HomePage({ onNavigate }) {
   };
 
   const categories = [
-    { name: 'Novels', count: 'Serialized epics & sagas', cat: 'novel', icon: BookOpen },
-    { name: 'Poetry', count: 'Verses, lyrics & haikus', cat: 'poem', icon: Feather },
-    { name: 'Short Stories', count: 'Bite-sized literary fiction', cat: 'short_story', icon: Sparkles }
+    { name: 'Short Stories', count: 'Bite-sized literary fiction & narratives', cat: 'short_story', icon: Sparkles },
+    { name: 'Poetry', count: 'Verses, lyrics, stanzas & haikus', cat: 'poem', icon: Feather },
+    { name: 'Thoughts & Quotes', count: 'Favorite quotes, reflections & breakdowns', cat: 'thought', icon: Quote }
   ];
 
   const popularGenres = [
@@ -78,7 +79,7 @@ export default function HomePage({ onNavigate }) {
             </h1>
 
             <p className="font-serif-body text-base sm:text-lg text-[#47436B] mt-2 leading-relaxed">
-              Discover captivating novels, poems, and short stories—or share your own voice with the world immediately. No fees. No paywalls. Pure literature.
+              Discover captivating short stories, poetry, and thoughtful reflections or quote breakdowns—or share your own voice with the world immediately. No fees. No paywalls. Pure literature.
             </p>
 
             {/* Prominent Search Bar in Hero */}

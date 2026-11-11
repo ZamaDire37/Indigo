@@ -221,6 +221,185 @@ router.get('/homepage', authOptional, (req, res) => {
   }
 });
 
+// Get All Works Owned by Logged-in User (For Creator Studio & Quick CRUD)
+router.get('/mine', authRequired, (req, res) => {
+  try {
+    const userWorks = db.prepare(`
+      SELECT
+        w.*,
+        p.id AS pen_name_id,
+        p.name AS pen_name,
+        p.avatar_url AS author_avatar,
+        (SELECT COUNT(*) FROM chapters c WHERE c.work_id = w.id) AS total_chapters_count,
+        (SELECT COUNT(*) FROM chapters c WHERE c.work_id = w.id AND c.is_published = 1) AS published_chapters_count,
+        (SELECT COUNT(*) FROM chapters c WHERE c.work_id = w.id AND c.is_published = 0) AS draft_chapters_count,
+        (SELECT ROUND(AVG(rating_val), 1) FROM ratings r WHERE r.work_id = w.id) AS avg_rating,
+        (SELECT COUNT(*) FROM ratings r WHERE r.work_id = w.id) AS ratings_count,
+        (SELECT COUNT(*) FROM comments cm WHERE cm.work_id = w.id) AS comments_count
+      FROM works w
+      JOIN pen_names p ON p.id = w.pen_name_id
+      WHERE p.user_id = ?
+      ORDER BY w.updated_at DESC
+    `).all(req.user.id);
+
+    const formatted = userWorks.map(w => {
+      // Also get lightweight chapters list for quick inline management
+      const chaps = db.prepare(`
+        SELECT id, chapter_number, title, is_published, created_at, updated_at, LENGTH(content) as char_count
+        FROM chapters
+        WHERE work_id = ?
+        ORDER BY chapter_number ASC
+      `).all(w.id);
+
+      return {
+        ...w,
+        genres: typeof w.genres === 'string' ? JSON.parse(w.genres || '[]') : w.genres,
+        chapters: chaps
+      };
+    });
+
+    res.json({ works: formatted });
+  } catch (err) {
+    console.error('Fetch my works error:', err);
+    res.status(500).json({ error: 'Failed to fetch your works' });
+  }
+});
+
+// Quick Status & Publication Toggle for Creator
+router.patch('/:id/quick-status', authRequired, (req, res) => {
+  try {
+    const work = db.prepare(`
+      SELECT w.*, p.user_id
+      FROM works w
+      JOIN pen_names p ON p.id = w.pen_name_id
+      WHERE w.id = ?
+    `).get(req.params.id);
+
+    if (!work) {
+      return res.status(404).json({ error: 'Work not found' });
+    }
+
+    if (work.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You do not own this work' });
+    }
+
+    const { status, is_published } = req.body;
+    const now = new Date().toISOString();
+
+    const newStatus = status !== undefined ? status : work.status;
+    const newPublished = is_published !== undefined ? (is_published ? 1 : 0) : work.is_published;
+
+    db.prepare(`
+      UPDATE works
+      SET status = ?, is_published = ?, updated_at = ?
+      WHERE id = ?
+    `).run(newStatus, newPublished, now, req.params.id);
+
+    const updatedWork = {
+      ...work,
+      status: newStatus,
+      is_published: newPublished,
+      updated_at: now
+    };
+
+    res.json({
+      message: 'Status updated successfully',
+      work: updatedWork,
+      status: newStatus,
+      is_published: newPublished
+    });
+  } catch (err) {
+    console.error('Quick status update error:', err);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+// Duplicate Work as New Draft
+router.post('/:id/duplicate', authRequired, (req, res) => {
+  try {
+    const work = db.prepare(`
+      SELECT w.*, p.user_id
+      FROM works w
+      JOIN pen_names p ON p.id = w.pen_name_id
+      WHERE w.id = ?
+    `).get(req.params.id);
+
+    if (!work) {
+      return res.status(404).json({ error: 'Work not found' });
+    }
+
+    if (work.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You do not own this work' });
+    }
+
+    const newWorkId = uuidv4();
+    const newTitle = `[Draft Copy] ${work.title}`;
+    const newSlug = `${slugify(newTitle)}-${newWorkId.substring(0, 8)}`;
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO works (
+        id, pen_name_id, title, slug, category, synopsis, cover_url,
+        genres, status, is_published, reads_count, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ongoing', 0, 0, ?, ?)
+    `).run(
+      newWorkId,
+      work.pen_name_id,
+      newTitle,
+      newSlug,
+      work.category,
+      work.synopsis,
+      work.cover_url,
+      work.genres,
+      now,
+      now
+    );
+
+    // Duplicate all chapters
+    const chapters = db.prepare('SELECT * FROM chapters WHERE work_id = ? ORDER BY chapter_number ASC').all(work.id);
+    const insertChapStmt = db.prepare(`
+      INSERT INTO chapters (id, work_id, chapter_number, title, content, is_published, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const c of chapters) {
+      insertChapStmt.run(
+        uuidv4(),
+        newWorkId,
+        c.chapter_number,
+        c.title,
+        c.content,
+        0, // draft copy
+        now,
+        now
+      );
+    }
+
+    const dupChapters = db.prepare('SELECT * FROM chapters WHERE work_id = ? ORDER BY chapter_number ASC').all(newWorkId);
+
+    res.status(201).json({
+      message: 'Work successfully duplicated as draft',
+      newWorkId,
+      work: {
+        id: newWorkId,
+        pen_name_id: work.pen_name_id,
+        title: newTitle,
+        slug: newSlug,
+        category: work.category,
+        synopsis: work.synopsis,
+        cover_url: work.cover_url,
+        genres: work.genres,
+        status: 'ongoing',
+        is_published: 0
+      },
+      chapters: dupChapters
+    });
+  } catch (err) {
+    console.error('Duplicate work error:', err);
+    res.status(500).json({ error: 'Failed to duplicate work' });
+  }
+});
+
 // Get Single Work
 router.get('/:id', authOptional, (req, res) => {
   try {
@@ -321,8 +500,8 @@ router.post('/', authRequired, (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    if (!category || !['novel', 'short_story', 'poem'].includes(category)) {
-      return res.status(400).json({ error: 'Valid category (novel, short_story, poem) is required' });
+    if (!category || !['short_story', 'poem', 'thought'].includes(category)) {
+      return res.status(400).json({ error: 'Valid category (short_story, poem, thought) is required' });
     }
 
     // Validate that pen name belongs to current user or user is admin
@@ -407,6 +586,7 @@ router.put('/:id', authRequired, (req, res) => {
 
     const {
       title,
+      category,
       synopsis,
       cover_url,
       genres,
@@ -414,6 +594,10 @@ router.put('/:id', authRequired, (req, res) => {
       is_published,
       pen_name_id
     } = req.body;
+
+    if (category && !['short_story', 'poem', 'thought'].includes(category)) {
+      return res.status(400).json({ error: 'Valid category (short_story, poem, thought) is required' });
+    }
 
     // If switching pen name, ensure new pen name also belongs to user
     let newPenNameId = work.pen_name_id;
@@ -427,12 +611,14 @@ router.put('/:id', authRequired, (req, res) => {
 
     const now = new Date().toISOString();
     const updatedTitle = title !== undefined ? title.trim() : work.title;
+    const updatedCategory = category !== undefined ? category : work.category;
     const updatedGenres = genres !== undefined ? JSON.stringify(Array.isArray(genres) ? genres : []) : work.genres;
 
     db.prepare(`
       UPDATE works
       SET pen_name_id = ?,
           title = ?,
+          category = ?,
           synopsis = ?,
           cover_url = ?,
           genres = ?,
@@ -443,6 +629,7 @@ router.put('/:id', authRequired, (req, res) => {
     `).run(
       newPenNameId,
       updatedTitle,
+      updatedCategory,
       synopsis !== undefined ? synopsis.trim() : work.synopsis,
       cover_url !== undefined ? cover_url : work.cover_url,
       updatedGenres,

@@ -285,4 +285,70 @@ router.post('/reorder', authRequired, (req, res) => {
   }
 });
 
+// Quick Toggle Chapter Publish Status
+router.patch('/:id/quick-publish', authRequired, (req, res) => {
+  try {
+    const chapter = db.prepare(`
+      SELECT c.*, p.user_id
+      FROM chapters c
+      JOIN works w ON w.id = c.work_id
+      JOIN pen_names p ON p.id = w.pen_name_id
+      WHERE c.id = ?
+    `).get(req.params.id);
+
+    if (!chapter) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+
+    if (chapter.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You do not have permission to modify this chapter' });
+    }
+
+    const { is_published } = req.body;
+    const nextVal = is_published !== undefined ? (is_published ? 1 : 0) : (chapter.is_published ? 0 : 1);
+    const now = new Date().toISOString();
+
+    db.prepare('UPDATE chapters SET is_published = ?, updated_at = ? WHERE id = ?').run(nextVal, now, req.params.id);
+
+    const updatedChapter = { ...chapter, is_published: nextVal, updated_at: now };
+    res.json({ message: 'Chapter status updated', is_published: nextVal, chapter: updatedChapter });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update chapter publish status' });
+  }
+});
+
+// Quick Rename Chapter Title
+router.patch('/:id/quick-title', authRequired, (req, res) => {
+  try {
+    const chapter = db.prepare(`
+      SELECT c.*, p.user_id
+      FROM chapters c
+      JOIN works w ON w.id = c.work_id
+      JOIN pen_names p ON p.id = w.pen_name_id
+      WHERE c.id = ?
+    `).get(req.params.id);
+
+    if (!chapter) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+
+    if (chapter.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You do not have permission to modify this chapter' });
+    }
+
+    const { title } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Title cannot be empty' });
+    }
+
+    const now = new Date().toISOString();
+    db.prepare('UPDATE chapters SET title = ?, updated_at = ? WHERE id = ?').run(title.trim(), now, req.params.id);
+
+    const updatedChapter = { ...chapter, title: title.trim(), updated_at: now };
+    res.json({ message: 'Chapter title updated', title: title.trim(), chapter: updatedChapter });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to rename chapter' });
+  }
+});
+
 module.exports = router;

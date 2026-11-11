@@ -17,7 +17,7 @@ export default function Footer({ onNavigate }) {
               </span>
             </div>
             <p className="text-xs text-[#A9A4C6] leading-relaxed">
-              Where words find a home. A free, open literary publishing house and community for novelists, poets, and storytellers worldwide.
+              Where words find a home. A free, open literary publishing house and community for writers, poets, and storytellers worldwide.
             </p>
             <div className="flex items-center gap-2 text-xs text-[#E0DCF0]">
               <Shield className="w-3.5 h-3.5 text-indigo-300" />
@@ -47,8 +47,8 @@ export default function Footer({ onNavigate }) {
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('/discover?category=novel')} className="hover:text-white transition-colors">
-                  Serialized Novels
+                <button onClick={() => onNavigate('/discover?category=thought')} className="hover:text-white transition-colors">
+                  Thoughts & Quotes
                 </button>
               </li>
             </ul>
@@ -61,8 +61,8 @@ export default function Footer({ onNavigate }) {
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <button onClick={() => onNavigate('/discover?category=novel')} className="hover:text-white transition-colors">
-                  Novels & Epics
+                <button onClick={() => onNavigate('/discover?category=thought')} className="hover:text-white transition-colors">
+                  Thoughts & Breakdowns
                 </button>
               </li>
               <li>

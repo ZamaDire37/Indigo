@@ -69,7 +69,7 @@ export default function LibraryPage({ onNavigate, onOpenAuth }) {
         <Bookmark className="w-12 h-12 text-[#1E1B4B] mx-auto mb-3" />
         <h2 className="font-display text-2xl font-bold text-[#1E1B4B]">My Personal Library</h2>
         <p className="text-sm text-gray-600 mt-2">
-          Keep track of your reading journey, bookmark novels you want to explore, and resume reading anytime.
+          Keep track of your reading journey, bookmark stories, poems, and thoughts you want to explore, and resume reading anytime.
         </p>
         <button
           onClick={() => onOpenAuth('login')}

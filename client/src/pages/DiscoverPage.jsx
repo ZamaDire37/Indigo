@@ -85,7 +85,7 @@ export default function DiscoverPage({ initialQuery = '', onNavigate }) {
           Discover Literature
         </h1>
         <p className="text-sm text-[#5D597E] mt-1 font-serif-body">
-          Explore serialized novels, short stories, and poetic collections across diverse genres.
+          Explore short stories, poems, and thoughtful reflections or quote breakdowns across diverse genres.
         </p>
       </div>
 
@@ -125,9 +125,9 @@ export default function DiscoverPage({ initialQuery = '', onNavigate }) {
               className="w-full py-1.5 px-3 bg-[#FAF7F2] border border-[#DDD5C5] rounded-lg text-xs font-medium text-[#1E1B4B] focus:outline-none focus:border-[#1E1B4B]"
             >
               <option value="all">All Categories</option>
-              <option value="novel">Novels</option>
               <option value="short_story">Short Stories</option>
               <option value="poem">Poetry</option>
+              <option value="thought">Thoughts & Quotes</option>
             </select>
           </div>
 
