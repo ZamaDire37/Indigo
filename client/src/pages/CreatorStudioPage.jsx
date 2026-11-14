@@ -22,7 +22,8 @@ import {
   Sparkles,
   Filter,
   FileText,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 export default function CreatorStudioPage({ onNavigate, onOpenAuth }) {
@@ -35,6 +36,14 @@ export default function CreatorStudioPage({ onNavigate, onOpenAuth }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [search, setSearch] = useState('');
   const [expandedWorkId, setExpandedWorkId] = useState(null);
+
+  // Studio tabs: 'works' or 'diary'
+  const [activeStudioTab, setActiveStudioTab] = useState('works');
+  const [diaryEntries, setDiaryEntries] = useState([]);
+  const [diaryLoading, setDiaryLoading] = useState(false);
+  const [diarySearch, setDiarySearch] = useState('');
+  const [diaryPrivacyFilter, setDiaryPrivacyFilter] = useState('all'); // 'all', 'private', 'public'
+  const [viewingDiaryEntry, setViewingDiaryEntry] = useState(null); // Read-only view modal
 
   // Quick Edit Modal state
   const [quickEditWork, setQuickEditWork] = useState(null);
@@ -74,13 +83,50 @@ export default function CreatorStudioPage({ onNavigate, onOpenAuth }) {
     }
   };
 
+  const fetchDiaryEntries = async () => {
+    setDiaryLoading(true);
+    try {
+      const data = await apiRequest('/diary/mine');
+      setDiaryEntries(data.entries || []);
+    } catch (err) {
+      console.error('Failed to load diary entries in studio:', err);
+    } finally {
+      setDiaryLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchMyWorks();
+      fetchDiaryEntries();
     } else if (!authLoading) {
       setLoading(false);
     }
   }, [user, authLoading]);
+
+  // Diary entries operations in Creator Studio:
+  // Strictly: VIEW, DELETE, and CHANGE VISIBILITY (Public/Private). No content modification.
+  const handleToggleDiaryPrivacy = async (entryId) => {
+    try {
+      const res = await apiRequest(`/diary/${entryId}/toggle-privacy`, { method: 'PATCH' });
+      setDiaryEntries(prev => prev.map(e => e.id === entryId ? { ...e, is_public: res.is_public } : e));
+    } catch (err) {
+      alert('Failed to change diary visibility: ' + err.message);
+    }
+  };
+
+  const handleDeleteDiary = async (entryId, title) => {
+    if (!confirm(`Are you sure you want to permanently delete diary entry "${title || 'Untitled'}"? This cannot be undone.`)) return;
+    try {
+      await apiRequest(`/diary/${entryId}`, { method: 'DELETE' });
+      setDiaryEntries(prev => prev.filter(e => e.id !== entryId));
+      if (viewingDiaryEntry?.id === entryId) {
+        setViewingDiaryEntry(null);
+      }
+    } catch (err) {
+      alert('Failed to delete diary entry: ' + err.message);
+    }
+  };
 
   // Quick toggle publication status (Live vs Draft)
   const handleTogglePublish = async (workId, currentPublished) => {
@@ -289,6 +335,17 @@ export default function CreatorStudioPage({ onNavigate, onOpenAuth }) {
     return true;
   });
 
+  const diaryEntriesList = Array.isArray(diaryEntries) ? diaryEntries : [];
+  const filteredDiaryEntries = diaryEntriesList.filter(e => {
+    if (diaryPrivacyFilter === 'private' && e.is_public !== 0) return false;
+    if (diaryPrivacyFilter === 'public' && e.is_public !== 1) return false;
+    if (diarySearch.trim()) {
+      const q = diarySearch.toLowerCase();
+      return (e.title || '').toLowerCase().includes(q) || (e.content || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   const totalReads = worksList.reduce((sum, w) => sum + (w.reads_count || 0), 0);
   const totalPublished = worksList.filter(w => w.is_published === 1).length;
   const totalDrafts = worksList.filter(w => w.is_published === 0).length;
@@ -329,7 +386,7 @@ export default function CreatorStudioPage({ onNavigate, onOpenAuth }) {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-[#E5DECF] shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Total Works</span>
           <p className="font-display text-2xl font-bold text-[#1E1B4B] mt-1">{worksList.length}</p>
@@ -346,10 +403,231 @@ export default function CreatorStudioPage({ onNavigate, onOpenAuth }) {
           <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">Total Reader Reads</span>
           <p className="font-display text-2xl font-bold text-[#1E1B4B] mt-1">{Number(totalReads).toLocaleString()}</p>
         </div>
+        <div className="bg-white p-5 rounded-2xl border border-[#E5DECF] shadow-xs col-span-2 sm:col-span-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Diary Entries</span>
+          <p className="font-display text-2xl font-bold text-purple-900 mt-1">{diaryEntriesList.length}</p>
+        </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white border border-[#E5DECF] rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Studio Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#E5DECF] pb-4">
+        <button
+          onClick={() => setActiveStudioTab('works')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            activeStudioTab === 'works'
+              ? 'bg-[#1E1B4B] text-white shadow-xs'
+              : 'bg-white text-[#4B4870] hover:bg-[#F2EDE2] border border-[#E5DECF]'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Publications & Stories</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+            activeStudioTab === 'works' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+          }`}>
+            {worksList.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveStudioTab('diary')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            activeStudioTab === 'diary'
+              ? 'bg-[#1E1B4B] text-white shadow-xs'
+              : 'bg-white text-[#4B4870] hover:bg-[#F2EDE2] border border-[#E5DECF]'
+          }`}
+        >
+          <Lock className="w-4 h-4 text-indigo-400" />
+          <span>Diary Entries (Read-Only)</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+            activeStudioTab === 'diary' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+          }`}>
+            {diaryEntriesList.length}
+          </span>
+        </button>
+      </div>
+
+      {/* STUDIO TAB CONTENT */}
+      {activeStudioTab === 'diary' ? (
+        <div className="space-y-6">
+          {/* Read-Only Notice Banner */}
+          <div className="bg-[#FAF7F2] border border-[#E5DECF] rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-indigo-900" />
+                <h3 className="font-serif font-bold text-base text-[#1E1B4B]">
+                  Personal Diary Archive
+                </h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
+                  Read-Only in Studio
+                </span>
+              </div>
+              <p className="text-xs text-[#5D597E] mt-1 font-serif-body">
+                Diary content cannot be modified in Creator Studio. You can preview entries, permanently delete them, or change their visibility status (Private / Public).
+              </p>
+            </div>
+
+            <button
+              onClick={() => onNavigate('/diary')}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#1E1B4B] hover:bg-[#312E81] text-white text-xs font-semibold rounded-xl whitespace-nowrap shadow-xs"
+            >
+              <span>Compose in Personal Diary</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Diary Search & Privacy Filter */}
+          <div className="bg-white border border-[#E5DECF] rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <select
+                value={diaryPrivacyFilter}
+                onChange={(e) => setDiaryPrivacyFilter(e.target.value)}
+                className="py-1.5 px-3 bg-[#FAF7F2] border border-[#DDD5C5] rounded-xl text-xs font-semibold text-[#1E1B4B] focus:outline-none"
+              >
+                <option value="all">All Privacy Statuses ({diaryEntriesList.length})</option>
+                <option value="private">Private Entries Only ({diaryEntriesList.filter(e => !e.is_public).length})</option>
+                <option value="public">Public / Shared Only ({diaryEntriesList.filter(e => e.is_public).length})</option>
+              </select>
+            </div>
+
+            <div className="w-full sm:w-64">
+              <input
+                type="text"
+                value={diarySearch}
+                onChange={(e) => setDiarySearch(e.target.value)}
+                placeholder="Search diary title or content..."
+                className="w-full py-1.5 px-3 bg-[#FAF7F2] border border-[#DDD5C5] rounded-xl text-xs text-[#1E1B4B] focus:outline-none focus:bg-white"
+              />
+            </div>
+          </div>
+
+          {/* Diary Entries List */}
+          {diaryLoading ? (
+            <div className="py-24 text-center text-gray-500 font-serif">
+              Loading your diary archive...
+            </div>
+          ) : filteredDiaryEntries.length === 0 ? (
+            <div className="bg-white/70 border border-dashed border-[#DDD5C5] rounded-3xl p-12 text-center">
+              <Lock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <h3 className="font-display text-lg font-bold text-[#1E1B4B]">No diary entries found</h3>
+              <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                {diaryEntriesList.length === 0
+                  ? 'You have not written any diary entries yet. Start recording your private thoughts in your Personal Diary.'
+                  : 'No diary entries match the selected filters.'}
+              </p>
+              <button
+                onClick={() => onNavigate('/diary')}
+                className="mt-4 px-5 py-2.5 bg-[#1E1B4B] text-white text-xs font-semibold rounded-xl hover:bg-[#312E81]"
+              >
+                Open Personal Diary
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredDiaryEntries.map((entry) => {
+                const isPublic = entry.is_public === 1;
+
+                return (
+                  <div
+                    key={entry.id}
+                    className="bg-white border border-[#E5DECF] rounded-3xl p-5 sm:p-6 shadow-xs hover:border-[#1E1B4B]/30 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
+                  >
+                    {/* Left: Metadata & Read-only preview */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
+                        <span className="font-mono text-[11px] font-semibold text-[#4B4870] bg-[#FAF7F2] px-2.5 py-0.5 rounded-md border border-[#E5DECF]">
+                          {new Date(entry.entry_date).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        {entry.mood && (
+                          <span className="text-[11px] font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+                            {entry.mood}
+                          </span>
+                        )}
+                        {entry.weather && (
+                          <span className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                            {entry.weather}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-gray-400 ml-auto md:ml-0">
+                          {entry.content.split(/\s+/).filter(Boolean).length} words
+                        </span>
+                      </div>
+
+                      <h4 className="font-serif font-bold text-lg text-[#1E1B4B] line-clamp-1 mb-1">
+                        {entry.title}
+                      </h4>
+
+                      {/* Content Preview (Strictly Read-Only, user cannot change content here) */}
+                      <p className="text-xs text-gray-600 font-serif-body leading-relaxed line-clamp-2 select-none">
+                        {entry.content}
+                      </p>
+                    </div>
+
+                    {/* Right: Actions (Strictly: View, Delete, Change Visibility Status - No Content Editing) */}
+                    <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-end md:self-center">
+                      {/* Change Visibility Status (Public/Private) */}
+                      <button
+                        onClick={() => handleToggleDiaryPrivacy(entry.id)}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                          isPublic
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
+                        }`}
+                        title="Click to toggle visibility status"
+                      >
+                        {isPublic ? (
+                          <>
+                            <Globe className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Public</span>
+                            <span className="text-[10px] text-emerald-700 font-normal underline ml-1">
+                              (Set Private)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Private</span>
+                            <span className="text-[10px] text-amber-800 font-normal underline ml-1">
+                              (Set Public)
+                            </span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* View Entry */}
+                      <button
+                        onClick={() => setViewingDiaryEntry(entry)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-[#F2EDE2] hover:bg-[#E5DECF] text-[#1E1B4B] text-xs font-semibold rounded-xl transition-colors"
+                        title="View entry in reader modal"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-[#5A5488]" />
+                        <span>View</span>
+                      </button>
+
+                      {/* Delete Entry */}
+                      <button
+                        onClick={() => handleDeleteDiary(entry.id, entry.title)}
+                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                        title="Delete entry permanently"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Publications & Stories Tab */
+        <>
+          {/* Filter and Search Bar */}
+          <div className="bg-white border border-[#E5DECF] rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Pen Name Filter */}
           <select
@@ -695,6 +973,8 @@ export default function CreatorStudioPage({ onNavigate, onOpenAuth }) {
           })}
         </div>
       )}
+    </>
+  )}
 
       {/* QUICK EDIT MODAL */}
       {quickEditWork && (
@@ -897,6 +1177,88 @@ export default function CreatorStudioPage({ onNavigate, onOpenAuth }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* READ-ONLY DIARY VIEW MODAL IN CREATOR STUDIO */}
+      {viewingDiaryEntry && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF7F2] border border-[#DDD5C5] rounded-3xl max-w-2xl w-full p-6 sm:p-8 max-h-[85vh] overflow-y-auto shadow-2xl space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5DECF]">
+              <div className="flex items-center gap-2">
+                {viewingDiaryEntry.is_public ? (
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    <Globe className="w-3 h-3" />
+                    Public / Shared
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                    <Lock className="w-3 h-3" />
+                    Private Entry
+                  </span>
+                )}
+                <span className="text-xs text-[#7E79A4] font-mono">
+                  {new Date(viewingDiaryEntry.entry_date).toLocaleDateString(undefined, {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
+              </div>
+              <button
+                onClick={() => setViewingDiaryEntry(null)}
+                className="text-gray-400 hover:text-gray-700 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <h2 className="font-serif font-bold text-2xl text-[#1E1B4B]">
+                {viewingDiaryEntry.title}
+              </h2>
+              <div className="flex items-center gap-2 mt-2">
+                {viewingDiaryEntry.mood && (
+                  <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full">
+                    Mood: {viewingDiaryEntry.mood}
+                  </span>
+                )}
+                {viewingDiaryEntry.weather && (
+                  <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                    Atmosphere: {viewingDiaryEntry.weather}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#E5DECF]">
+              <p className="font-serif-body text-sm text-gray-800 leading-relaxed whitespace-pre-wrap select-text">
+                {viewingDiaryEntry.content}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-6 border-t border-[#E5DECF]">
+              <span className="text-[11px] text-gray-400 italic">
+                Content is read-only in Creator Studio
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onNavigate(`/diary/read/${viewingDiaryEntry.id}`)}
+                  className="px-4 py-2 bg-[#1E1B4B] text-white text-xs font-semibold rounded-xl hover:bg-[#312E81] flex items-center gap-1.5"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Full Screen Reader</span>
+                </button>
+                <button
+                  onClick={() => setViewingDiaryEntry(null)}
+                  className="px-4 py-2 border border-gray-300 text-xs font-semibold rounded-xl hover:bg-gray-100 text-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
