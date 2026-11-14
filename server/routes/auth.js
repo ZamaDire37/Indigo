@@ -26,10 +26,17 @@ router.post('/register', (req, res) => {
     const passwordHash = bcrypt.hashSync(password, 10);
     const now = new Date().toISOString();
 
+    // First user to register in the system automatically becomes Platform Administrator
+    // Any user matching ADMIN_EMAIL env is also granted admin privileges
+    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get()?.count || 0;
+    const isFirstUser = userCount === 0;
+    const isExplicitAdmin = process.env.ADMIN_EMAIL && email.trim().toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase();
+    const role = (isFirstUser || isExplicitAdmin) ? 'admin' : 'user';
+
     db.prepare(`
       INSERT INTO users (id, username, email, password_hash, role, created_at)
-      VALUES (?, ?, ?, ?, 'user', ?)
-    `).run(userId, username.trim(), email.trim().toLowerCase(), passwordHash, now);
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(userId, username.trim(), email.trim().toLowerCase(), passwordHash, role, now);
 
     // Create an initial default pen name
     const penNameId = uuidv4();
@@ -38,7 +45,7 @@ router.post('/register', (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `).run(penNameId, userId, username.trim(), 'Author on Indigo', now);
 
-    const user = { id: userId, username: username.trim(), email: email.trim().toLowerCase(), role: 'user' };
+    const user = { id: userId, username: username.trim(), email: email.trim().toLowerCase(), role };
     const token = generateToken(user);
     const penNames = db.prepare('SELECT * FROM pen_names WHERE user_id = ? ORDER BY created_at ASC').all(userId);
 

@@ -201,13 +201,6 @@ export default function AuthModal({ initialMode = 'login', onClose, onNavigate }
             </button>
           </div>
         )}
-
-        {/* Demo credentials hint for testing */}
-        <div className="mt-6 pt-4 border-t border-gray-100 text-[11px] text-gray-500 bg-[#FAF7F2] p-3 rounded-xl">
-          <p className="font-bold text-gray-700 mb-1">Quick Demo Credentials:</p>
-          <p>Admin: <code className="bg-white px-1 py-0.5 rounded text-[#1E1B4B]">admin@indigo.lit</code> / <code className="bg-white px-1 py-0.5 rounded text-[#1E1B4B]">AdminPass123!</code></p>
-          <p>Writer: <code className="bg-white px-1 py-0.5 rounded text-[#1E1B4B]">eleanor@indigo.lit</code> / <code className="bg-white px-1 py-0.5 rounded text-[#1E1B4B]">Password123!</code></p>
-        </div>
       </div>
     </div>
   );

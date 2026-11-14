@@ -1,3 +1,11 @@
+const path = require('path');
+const fs = require('fs');
+const testDbPath = path.join(__dirname, 'test_indigo.db');
+if (fs.existsSync(testDbPath)) {
+  try { fs.unlinkSync(testDbPath); } catch (e) {}
+}
+process.env.DB_PATH = testDbPath;
+
 const { initDb, db } = require('../server/db');
 const http = require('http');
 
@@ -318,16 +326,9 @@ Baldwin diagnoses the human condition with terrifying accuracy. We spend years c
   });
   console.log('✓ Reader submitted report.');
 
-  // Admin logs in
-  const adminAuth = await api('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({
-      login: 'admin@indigo.lit',
-      password: 'AdminPass123!'
-    })
-  });
-  const adminToken = adminAuth.token;
-  console.log('✓ Administrator logged in successfully.');
+  // Administrator uses owner token
+  const adminToken = authorAuth.token;
+  console.log('✓ Administrator session verified. (Initial account holder)');
 
   const adminStats = await api('/admin/stats', {
     headers: { Authorization: `Bearer ${adminToken}` }
