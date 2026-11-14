@@ -17,7 +17,8 @@ import {
   Check,
   PlusCircle,
   ExternalLink,
-  LayoutDashboard
+  LayoutDashboard,
+  Lock
 } from 'lucide-react';
 
 export default function Navbar({ onOpenAuth, onNavigate, currentPath }) {
@@ -112,9 +113,14 @@ export default function Navbar({ onOpenAuth, onNavigate, currentPath }) {
                 My Library
               </button>
               {user && (
-                <button onClick={() => onNavigate('/studio')} className={navLinkClass('/studio')}>
-                  Creator Studio
-                </button>
+                <>
+                  <button onClick={() => onNavigate('/diary')} className={navLinkClass('/diary')}>
+                    My Diary
+                  </button>
+                  <button onClick={() => onNavigate('/studio')} className={navLinkClass('/studio')}>
+                    Creator Studio
+                  </button>
+                </>
               )}
               <button
                 onClick={() => onNavigate('/write')}
@@ -307,6 +313,17 @@ export default function Navbar({ onOpenAuth, onNavigate, currentPath }) {
                         <button
                           onClick={() => {
                             setUserDropdownOpen(false);
+                            onNavigate('/diary');
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-xs text-indigo-900 bg-indigo-50/60 hover:bg-indigo-100 font-semibold"
+                        >
+                          <Lock className="w-4 h-4 text-[#312E81]" />
+                          <span>Personal Diary</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setUserDropdownOpen(false);
                             onNavigate('/studio');
                           }}
                           className="w-full flex items-center gap-2 px-4 py-2 text-xs text-amber-900 bg-amber-50/70 hover:bg-amber-100 font-semibold"
@@ -460,15 +477,26 @@ export default function Navbar({ onOpenAuth, onNavigate, currentPath }) {
             My Library
           </button>
           {user && (
-            <button
-              onClick={() => {
-                onNavigate('/studio');
-                setMobileMenuOpen(false);
-              }}
-              className="w-full text-left px-3 py-2 text-sm font-semibold text-amber-900 bg-amber-50/80 rounded-lg hover:bg-amber-100"
-            >
-              Creator Studio
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  onNavigate('/diary');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm font-semibold text-indigo-950 bg-indigo-50/70 rounded-lg hover:bg-indigo-100"
+              >
+                Personal Diary
+              </button>
+              <button
+                onClick={() => {
+                  onNavigate('/studio');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm font-semibold text-amber-900 bg-amber-50/80 rounded-lg hover:bg-amber-100"
+              >
+                Creator Studio
+              </button>
+            </>
           )}
           <button
             onClick={() => {

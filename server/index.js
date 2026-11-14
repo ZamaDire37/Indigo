@@ -32,6 +32,7 @@ app.use('/api', require('./routes/interactions'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/diary', require('./routes/diary'));
 
 // Serve static client assets if client/dist exists
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist');

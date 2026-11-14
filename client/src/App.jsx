@@ -16,6 +16,8 @@ import PenNamesPage from './pages/PenNamesPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import SettingsPage from './pages/SettingsPage';
 import CreatorStudioPage from './pages/CreatorStudioPage';
+import DiaryPage from './pages/DiaryPage';
+import DiaryReaderPage from './pages/DiaryReaderPage';
 
 class RouteErrorBoundary extends React.Component {
   constructor(props) {
@@ -182,6 +184,21 @@ function IndigoApp() {
       <CreatorStudioPage
         onNavigate={navigate}
         onOpenAuth={openAuth}
+      />
+    );
+  } else if (pathOnly === '/diary') {
+    routeComponent = (
+      <DiaryPage
+        onNavigate={navigate}
+        onOpenAuth={openAuth}
+      />
+    );
+  } else if (pathOnly.startsWith('/diary/read/')) {
+    const entryId = pathOnly.split('/diary/read/')[1];
+    routeComponent = (
+      <DiaryReaderPage
+        entryId={entryId}
+        onNavigate={navigate}
       />
     );
   } else if (pathOnly === '/settings') {

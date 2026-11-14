@@ -278,6 +278,22 @@ async function initDb() {
       created_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS diary_entries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      pen_name_id TEXT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      mood TEXT DEFAULT '',
+      weather TEXT DEFAULT '',
+      entry_date TEXT NOT NULL,
+      is_public INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (pen_name_id) REFERENCES pen_names(id) ON DELETE SET NULL
+    );
   `);
 
   saveDb();

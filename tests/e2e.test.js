@@ -21,6 +21,7 @@ async function runTests() {
   app.use('/api/upload', require('../server/routes/upload'));
   app.use('/api/notifications', require('../server/routes/notifications'));
   app.use('/api/admin', require('../server/routes/admin'));
+  app.use('/api/diary', require('../server/routes/diary'));
 
   const server = http.createServer(app);
   await new Promise(resolve => server.listen(5099, resolve));
@@ -388,10 +389,87 @@ Baldwin diagnoses the human condition with terrifying accuracy. We spend years c
     console.log('✓ Inline chapter quick publish toggle: is_published =', publishedChapter.chapter.is_published);
   }
 
+  // JOURNEY STEP 16: Diary Entries (Private by default, auto/editable date stamp, clean reader, selective sharing)
+  console.log('\nStep 16: Testing Diary Entries feature (privacy, editable dates, sharing)...');
+  
+  // 1. Create a diary entry (defaulting to private and today's date)
+  const createdDiaryRes = await api('/diary', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${authorToken}` },
+    body: JSON.stringify({
+      title: 'Midnight Reflections on Solitude',
+      content: 'The city grows silent under the rain. Finding beauty in quiet corners.',
+      mood: 'Contemplative',
+      weather: 'Rainy'
+    })
+  });
+  const diaryEntry = createdDiaryRes.entry;
+  console.log('✓ Created diary entry:', diaryEntry.id, 'Title:', diaryEntry.title);
+  if (diaryEntry.is_public !== 0) throw new Error('Diary entry was not private by default!');
+  if (!diaryEntry.entry_date) throw new Error('Diary entry was not automatically date stamped!');
+  console.log('  Verified: is_public =', diaryEntry.is_public, '(Private by default), entry_date =', diaryEntry.entry_date);
+
+  // 2. Fetch author's diary entries
+  const myDiaryRes = await api('/diary/mine', {
+    headers: { Authorization: `Bearer ${authorToken}` }
+  });
+  console.log('✓ Author retrieved personal diary index:', myDiaryRes.entries.length, 'entries found. Total stats:', myDiaryRes.stats);
+
+  // 3. Edit date and content
+  const updatedDiaryRes = await api(`/diary/${diaryEntry.id}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${authorToken}` },
+    body: JSON.stringify({
+      title: 'Midnight Reflections on Solitude (Updated)',
+      content: 'The rain has stopped now. The stars are breaking through the mist.',
+      entry_date: '2026-11-01',
+      mood: 'Peaceful',
+      weather: 'Clear'
+    })
+  });
+  console.log('✓ Successfully edited diary entry date to custom date:', updatedDiaryRes.entry.entry_date);
+
+  // 4. Unauthorized reader attempts to read private diary entry -> expect 403 Forbidden
+  let privacyBlocked = false;
+  try {
+    await api(`/diary/entry/${diaryEntry.id}`, {
+      headers: { Authorization: `Bearer ${readerToken}` }
+    });
+  } catch (err) {
+    privacyBlocked = true;
+    console.log('✓ Verified privacy enforcement: Unauthorized reader blocked with error:', err.message);
+  }
+  if (!privacyBlocked) throw new Error('Unauthorized user was able to access a private diary entry!');
+
+  // 5. Author toggles privacy to shared (is_public = 1)
+  const toggledDiaryRes = await api(`/diary/${diaryEntry.id}/toggle-privacy`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${authorToken}` }
+  });
+  console.log('✓ 1-Click Privacy Toggle: is_public is now =', toggledDiaryRes.is_public);
+
+  // 6. Reader can now access the shared entry and see it in public shared list
+  const publicEntryRes = await api(`/diary/entry/${diaryEntry.id}`, {
+    headers: { Authorization: `Bearer ${readerToken}` }
+  });
+  console.log('✓ Public reader can now read shared diary entry:', publicEntryRes.entry.title);
+
+  const publicDiaries = await api('/diary/public');
+  const foundInPublic = publicDiaries.entries.some(e => e.id === diaryEntry.id);
+  if (!foundInPublic) throw new Error('Shared diary entry not found in public list!');
+  console.log('✓ Entry appears in public community feed:', foundInPublic);
+
+  // 7. Delete diary entry
+  await api(`/diary/${diaryEntry.id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${authorToken}` }
+  });
+  console.log('✓ Successfully deleted diary entry.');
+
   // Close test server
   server.close();
   console.log('\n======================================================');
-  console.log('ALL 15 USER JOURNEYS PASSED WITH REAL PERSISTED DATA!');
+  console.log('ALL 16 USER JOURNEYS PASSED WITH REAL PERSISTED DATA!');
   console.log('======================================================');
 }
 
